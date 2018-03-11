@@ -1,5 +1,5 @@
 # PCPNet
-This is our implementation for [PCPNet](http://geometry.cs.ucl.ac.uk/projects/2018/pcpnet/),
+This is our implementation of [PCPNet](http://geometry.cs.ucl.ac.uk/projects/2018/pcpnet/),
 a network that estimates local geometric properties such as normals and curvature from point clouds.
 
 ![PCPNet estimates local point cloud properties](https://raw.githubusercontent.com/paulguerrero/pcpnet/master/images/teaser.png "PCPNet")
@@ -26,13 +26,13 @@ pip install scipy
 pip install tensorboardX
 ```
 
-clone this repository:
+Clone this repository:
 ``` bash
 git clone https://github.com/paulguerrero/pcpnet.git
 cd pcpnet
 ```
 
-donwload dataset and pre-trained models:
+Download dataset and pre-trained models:
 ``` bash
 python pclouds/download_pclouds.py
 python models/download_models.py
