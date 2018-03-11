@@ -18,9 +18,9 @@ def parse_arguments():
     # naming / file handling
     parser.add_argument('--indir', type=str, default='./pclouds', help='input folder (point clouds)')
     parser.add_argument('--outdir', type=str, default='./results', help='output folder (estimated point cloud properties)')
-    parser.add_argument('--shapeset', type=str, default='testset.txt', help='shape set file name')
+    parser.add_argument('--dataset', type=str, default='testset.txt', help='shape set file name')
     parser.add_argument('--modeldir', type=str, default='./models', help='model folder')
-    parser.add_argument('--models', type=str, default='multi_scale_oriented_normal', help='names of trained models, can evaluate multiple models')
+    parser.add_argument('--models', type=str, default='single_scale_normal', help='names of trained models, can evaluate multiple models')
     parser.add_argument('--modelpostfix', type=str, default='_model.pth', help='model file postfix')
     parser.add_argument('--parmpostfix', type=str, default='_params.pth', help='parameter file postfix')
 
@@ -74,7 +74,7 @@ def eval_pcpnet(opt):
                 raise ValueError('Unknown output: %s' % (o))
 
         dataset = PointcloudPatchDataset(
-            root=opt.indir, shape_list_filename=opt.shapeset,
+            root=opt.indir, shape_list_filename=opt.dataset,
             patch_radius=trainopt.patch_radius,
             points_per_patch=trainopt.points_per_patch,
             patch_features=[],
