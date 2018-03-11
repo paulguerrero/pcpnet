@@ -1,0 +1,10 @@
+/.vscode/
+/results/
+/pclouds/*.xyz
+/pclouds/*.normals
+/pclouds/*.curv
+/pclouds/*.pidx
+/pclouds/*.npy
+/pclouds/*.txt
+/models/*.pth
+/__pycache__/
