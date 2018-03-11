@@ -7,4 +7,6 @@
 /pclouds/*.npy
 /pclouds/*.txt
 /models/*.pth
+/models/*.txt
 /__pycache__/
+/logs/
