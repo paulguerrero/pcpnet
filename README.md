@@ -11,7 +11,7 @@ which makes estimated local properties more accurate.
 This code was written by [Paul Guerrero](https://paulguerrero.github.io) and [Yanir Kleiman](https://www.cs.tau.ac.il/~yanirk/),
 based on the excellent PyTorch implementation of PointNet by [Fei Xia](https://github.com/fxia22/pointnet.pytorch).
 
-This work will be presented at [Eurographics 2018](https://www.eurographics2018.nl/).
+This work was presented at [Eurographics 2018](https://www.eurographics2018.nl/).
 
 ## Prerequisites
 * CUDA and CuDNN (changing the code to run on CPU should require few changes)
