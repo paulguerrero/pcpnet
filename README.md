@@ -13,6 +13,8 @@ based on the excellent PyTorch implementation of PointNet by [Fei Xia](https://g
 
 This work was presented at [Eurographics 2018](https://www.eurographics2018.nl/).
 
+**Update 21/Jun/2018:** The test dataset has been updated to include one shape that was missing to exactly reproduce the results in our paper. Thanks to Itzik Ben Shabat for pointing this out! Also note that the `--sparse_patches` option needs to be activated when running eval_pcpnet.py to exactly reproduce the results in our paper.
+
 ## Prerequisites
 * CUDA and CuDNN (changing the code to run on CPU should require few changes)
 * Python 3.6
