@@ -81,16 +81,14 @@ The dataset is given in the format described above. To change model settings or 
 ## Citation
 If you use our work, please cite our paper:
 ```
-@article{GuerreroEtAl:PCPNet:2016,
+@article{GuerreroEtAl:PCPNet:EG:2018,
   title   = {{PCPNet}: Learning Local Shape Properties from Raw Point Clouds}, 
   author  = {Paul Guerrero and Yanir Kleiman and Maks Ovsjanikov and Niloy J. Mitra},
   year    = {2018},
-  journal = {Eurographics},
-  volume = {},
-  number = {},
-  issn = {},
-  pages = {},
-  numpages = {},
-  doi = {},
+  journal = {Computer Graphics Forum},
+  volume = {37},
+  number = {2},
+  pages = {75-85},
+  doi = {10.1111/cgf.13343},
 }
 ```
