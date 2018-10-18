@@ -13,12 +13,14 @@ based on the excellent PyTorch implementation of PointNet by [Fei Xia](https://g
 
 This work was presented at [Eurographics 2018](https://www.eurographics2018.nl/).
 
+**Update 18/Oct/2018:** The code has been updated to pytorch 0.4, and an option for choosing the GPU or using CPU only has been added. The old version that is compatible with pytorch 0.3 is still available in the branch [`pytorch_0.3`](https://github.com/paulguerrero/pcpnet/tree/pytorch_0.3).
+
 **Update 21/Jun/2018:** The test dataset has been updated to include one shape that was missing to exactly reproduce the results in our paper. Thanks to Itzik Ben Shabat for pointing this out! Also note that the `--sparse_patches` option needs to be activated when running eval_pcpnet.py to exactly reproduce the results in our paper.
 
 ## Prerequisites
 * CUDA and CuDNN (changing the code to run on CPU should require few changes)
 * Python 3.6
-* PyTorch 0.3
+* PyTorch 0.4
 
 ## Setup
 Install required python packages, if they are not already installed ([tensorboardX](https://github.com/lanpa/tensorboard-pytorch) is only required for training):
