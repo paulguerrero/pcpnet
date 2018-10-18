@@ -11,7 +11,6 @@ import torch.nn.parallel
 import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
 import torch.utils.data
-from torch.autograd import Variable
 from tensorboardX import SummaryWriter # https://github.com/lanpa/tensorboard-pytorch
 import utils
 from dataset import PointcloudPatchDataset, RandomPointcloudPatchSampler, SequentialShapeRandomPointcloudPatchSampler
@@ -30,6 +29,7 @@ def parse_arguments():
     parser.add_argument('--testset', type=str, default='validationset_whitenoise.txt', help='test set file name')
     parser.add_argument('--saveinterval', type=int, default='10', help='save model each n epochs')
     parser.add_argument('--refine', type=str, default='', help='refine model at this path')
+    parser.add_argument('--gpu_idx', type=int, default=0, help='set < 0 to use CPU')
 
     # training parameters
     parser.add_argument('--nepoch', type=int, default=2000, help='number of epochs to train for')
@@ -69,6 +69,8 @@ def parse_arguments():
     return parser.parse_args()
 
 def train_pcpnet(opt):
+
+    device = torch.device("cpu" if opt.gpu_idx < 0 else "cuda:%d" % opt.gpu_idx)
 
     # colored console output
     green = lambda x: '\033[92m' + x + '\033[0m'
@@ -235,7 +237,7 @@ def train_pcpnet(opt):
 
     optimizer = optim.SGD(pcpnet.parameters(), lr=opt.lr, momentum=opt.momentum)
     scheduler = lr_scheduler.MultiStepLR(optimizer, milestones=[], gamma=0.1) # milestones in number of optimizer iterations
-    pcpnet.cuda()
+    pcpnet.to(device)
 
     train_num_batch = len(train_dataloader)
     test_num_batch = len(test_dataloader)
@@ -265,16 +267,14 @@ def train_pcpnet(opt):
             # set to training mode
             pcpnet.train()
 
-            # get trainingset batch, convert to variables and upload to GPU
+            # get trainingset batch and upload to GPU
             points = data[0]
             target = data[1:-1]
 
-            points = Variable(points)
             points = points.transpose(2, 1)
-            points = points.cuda()
+            points = points.to(device)
 
-            target = tuple(Variable(t) for t in target)
-            target = tuple(t.cuda() for t in target)
+            target = tuple(t.to(device) for t in target)
 
             # zero gradients
             optimizer.zero_grad()
@@ -300,9 +300,8 @@ def train_pcpnet(opt):
             train_fraction_done = (train_batchind+1) / train_num_batch
 
             # print info and update log file
-            print('[%s %d: %d/%d] %s loss: %f' % (opt.name, epoch, train_batchind, train_num_batch-1, green('train'), loss.data[0]))
-            # print('min normal len: %f' % (pred.data.norm(2,1).min()))
-            train_writer.add_scalar('loss', loss.data[0], (epoch + train_fraction_done) * train_num_batch * opt.batchSize)
+            print('[%s %d: %d/%d] %s loss: %f' % (opt.name, epoch, train_batchind, train_num_batch-1, green('train'), loss.item()))
+            train_writer.add_scalar('loss', loss.item(), (epoch + train_fraction_done) * train_num_batch * opt.batchSize)
 
             while test_fraction_done <= train_fraction_done and test_batchind+1 < test_num_batch:
 
@@ -311,21 +310,18 @@ def train_pcpnet(opt):
 
                 test_batchind, data = next(test_enum)
 
-                # get testset batch, convert to variables and upload to GPU
-                # volatile means that autograd is turned off for everything that depends on the volatile variable
-                # since we dont need autograd for inference (only for training)
+                # get testset batch and upload to GPU
                 points = data[0]
                 target = data[1:-1]
 
-                points = Variable(points, volatile=True)
                 points = points.transpose(2, 1)
-                points = points.cuda()
+                points = points.to(device)
 
-                target = tuple(Variable(t, volatile=True) for t in target)
-                target = tuple(t.cuda() for t in target)
+                target = tuple(t.to(device) for t in target)
 
                 # forward pass
-                pred, trans, _, _ = pcpnet(points)
+                with torch.no_grad():
+                    pred, trans, _, _ = pcpnet(points)
 
                 loss = compute_loss(
                     pred=pred, target=target,
@@ -339,9 +335,8 @@ def train_pcpnet(opt):
                 test_fraction_done = (test_batchind+1) / test_num_batch
 
                 # print info and update log file
-                print('[%s %d: %d/%d] %s loss: %f' % (opt.name, epoch, train_batchind, train_num_batch-1, blue('test'), loss.data[0]))
-                # print('min normal len: %f' % (pred.data.norm(2,1).min()))
-                test_writer.add_scalar('loss', loss.data[0], (epoch + test_fraction_done) * train_num_batch * opt.batchSize)
+                print('[%s %d: %d/%d] %s loss: %f' % (opt.name, epoch, train_batchind, train_num_batch-1, blue('test'), loss.item()))
+                test_writer.add_scalar('loss', loss.item(), (epoch + test_fraction_done) * train_num_batch * opt.batchSize)
 
         # save model, overwriting the old model
         if epoch % opt.saveinterval == 0 or epoch == opt.nepoch-1:

@@ -5,7 +5,6 @@ import torch.nn as nn
 import torch.nn.parallel
 import torch.utils.data
 import torch.nn.functional as F
-from torch.autograd import Variable
 import utils
 
 
@@ -48,10 +47,7 @@ class STN(nn.Module):
         if self.num_scales == 1:
             x = self.mp1(x)
         else:
-            if x.is_cuda:
-                x_scales = Variable(torch.cuda.FloatTensor(x.size(0), 1024*self.num_scales, 1))
-            else:
-                x_scales = Variable(torch.FloatTensor(x.size(0), 1024*self.num_scales, 1))
+            x_scales = x.new_empty(x.size(0), 1024*self.num_scales, 1)
             for s in range(self.num_scales):
                 x_scales[:, s*1024:(s+1)*1024, :] = self.mp1(x[:, :, s*self.num_points:(s+1)*self.num_points])
             x = x_scales
@@ -65,10 +61,7 @@ class STN(nn.Module):
         x = F.relu(self.bn5(self.fc2(x)))
         x = self.fc3(x)
 
-        iden = Variable(torch.from_numpy(np.identity(self.dim, 'float32')).clone()).view(1, self.dim*self.dim).repeat(batchsize, 1)
-
-        if x.is_cuda:
-            iden = iden.cuda()
+        iden = torch.eye(self.dim, dtype=x.dtype, device=x.device).view(1, self.dim*self.dim).repeat(batchsize, 1)
         x = x + iden
         x = x.view(-1, self.dim, self.dim)
         return x
@@ -110,10 +103,7 @@ class QSTN(nn.Module):
         if self.num_scales == 1:
             x = self.mp1(x)
         else:
-            if x.is_cuda:
-                x_scales = Variable(torch.cuda.FloatTensor(x.size(0), 1024*self.num_scales, 1))
-            else:
-                x_scales = Variable(torch.FloatTensor(x.size(0), 1024*self.num_scales, 1))
+            x_scales = x.new_empty(x.size(0), 1024*self.num_scales, 1)
             for s in range(self.num_scales):
                 x_scales[:, s*1024:(s+1)*1024, :] = self.mp1(x[:, :, s*self.num_points:(s+1)*self.num_points])
             x = x_scales
@@ -128,17 +118,11 @@ class QSTN(nn.Module):
         x = self.fc3(x)
 
         # add identity quaternion (so the network can output 0 to leave the point cloud identical)
-        iden = Variable(torch.FloatTensor([1, 0, 0, 0]))
-        if x.is_cuda:
-            iden = iden.cuda()
+        iden = x.new_tensor([1, 0, 0, 0])
         x = x + iden
 
         # convert quaternion to rotation matrix
-        if x.is_cuda:
-            trans = Variable(torch.cuda.FloatTensor(batchsize, 3, 3))
-        else:
-            trans = Variable(torch.FloatTensor(batchsize, 3, 3))
-        x = utils.batch_quat_to_rotmat(x, trans)
+        x = utils.batch_quat_to_rotmat(x)
 
         return x
 
@@ -234,10 +218,7 @@ class PointNetfeat(nn.Module):
                 raise ValueError('Unsupported symmetric operation: %s' % (self.sym_op))
 
         else:
-            if x.is_cuda:
-                x_scales = Variable(torch.cuda.FloatTensor(x.size(0), 1024*self.num_scales**2, 1))
-            else:
-                x_scales = Variable(torch.FloatTensor(x.size(0), 1024*self.num_scales**2, 1))
+            x_scales = x.new_empty(x.size(0), 1024*self.num_scales**2, 1)
             if self.sym_op == 'max':
                 for s in range(self.num_scales):
                     x_scales[:, s*self.num_scales*1024:(s+1)*self.num_scales*1024, :] = self.mp1(x[:, :, s*self.num_points:(s+1)*self.num_points])

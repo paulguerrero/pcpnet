@@ -272,7 +272,7 @@ class PointcloudPatchDataset(data.Dataset):
             center_point_ind = shape.pidx[patch_ind]
 
         # get neighboring points (within euclidean distance patch_radius)
-        patch_pts = torch.FloatTensor(self.points_per_patch*len(self.patch_radius_absolute[shape_ind]), 3).zero_()
+        patch_pts = torch.zeros(self.points_per_patch*len(self.patch_radius_absolute[shape_ind]), 3, dtype=torch.float)
         # patch_pts_valid = torch.ByteTensor(self.points_per_patch*len(self.patch_radius_absolute[shape_ind])).zero_()
         patch_pts_valid = []
         scale_ind_range = np.zeros([len(self.patch_radius_absolute[shape_ind]), 2], dtype='int')
@@ -350,7 +350,7 @@ class PointcloudPatchDataset(data.Dataset):
 
         # get point tuples from the current patch
         if self.point_tuple > 1:
-            patch_tuples = torch.FloatTensor(self.points_per_patch*len(self.patch_radius_absolute[shape_ind]), 3*self.point_tuple).zero_()
+            patch_tuples = torch.zeros(self.points_per_patch*len(self.patch_radius_absolute[shape_ind]), 3*self.point_tuple, dtype=torch.float)
             for s, rad in enumerate(self.patch_radius_absolute[shape_ind]):
                 start = scale_ind_range[s, 0]
                 end = scale_ind_range[s, 1]

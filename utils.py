@@ -6,7 +6,7 @@ def batch_quat_to_rotmat(q, out=None):
     batchsize = q.size(0)
 
     if out is None:
-        out = torch.FloatTensor(batchsize, 3, 3)
+        out = q.new_empty(batchsize, 3, 3)
 
     # 2 / squared quaternion 2-norm
     s = 2/torch.sum(q.pow(2), 1)

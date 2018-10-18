@@ -23,6 +23,7 @@ def parse_arguments():
     parser.add_argument('--models', type=str, default='single_scale_normal', help='names of trained models, can evaluate multiple models')
     parser.add_argument('--modelpostfix', type=str, default='_model.pth', help='model file postfix')
     parser.add_argument('--parmpostfix', type=str, default='_params.pth', help='parameter file postfix')
+    parser.add_argument('--gpu_idx', type=int, default=0, help='set < 0 to use CPU')
 
     parser.add_argument('--sparse_patches', type=int, default=False, help='evaluate on a sparse set of patches, given by a .pidx file containing the patch center point indices.')
     parser.add_argument('--sampling', type=str, default='full', help='sampling strategy, any of:\n'
@@ -42,6 +43,8 @@ def eval_pcpnet(opt):
 
     if opt.seed < 0:
         opt.seed = random.randint(1, 10000)
+
+    device = torch.device("cpu" if opt.gpu_idx < 0 else "cuda:%d" % opt.gpu_idx)
 
     for model_name in opt.models:
 
@@ -120,7 +123,7 @@ def eval_pcpnet(opt):
                 point_tuple=trainopt.point_tuple)
 
         regressor.load_state_dict(torch.load(model_filename))
-        regressor.cuda()
+        regressor.to(device)
         regressor.eval()
 
         shape_ind = 0
@@ -131,7 +134,7 @@ def eval_pcpnet(opt):
             shape_patch_count = min(opt.patches_per_shape, dataset.shape_patch_count[shape_ind])
         else:
             raise ValueError('Unknown sampling strategy: %s' % opt.sampling)
-        shape_properties = torch.FloatTensor(shape_patch_count, pred_dim).zero_()
+        shape_properties = torch.zeros(shape_patch_count, pred_dim, dtype=torch.float, device=device)
 
         # append model name to output directory and create directory if necessary
         model_outdir = os.path.join(opt.outdir, model_name)
@@ -144,18 +147,13 @@ def eval_pcpnet(opt):
 
             # get batch, convert to variables and upload to GPU
             points, data_trans = data
-            points = Variable(points, volatile=True)
             points = points.transpose(2, 1)
-            points = points.cuda()
+            points = points.to(device)
 
-            data_trans = data_trans.cuda()
+            data_trans = data_trans.to(device)
 
-            pred, trans, _, _ = regressor(points)
-
-            # don't need to work with autograd variables anymore
-            pred = pred.data
-            if trans is not None:
-                trans = trans.data
+            with torch.no_grad():
+                pred, trans, _, _ = regressor(points)
 
             # post-processing of the prediction
             for oi, o in enumerate(trainopt.outputs):
@@ -172,7 +170,7 @@ def eval_pcpnet(opt):
                         o_pred[:, :] = torch.bmm(o_pred.unsqueeze(1), data_trans.transpose(2, 1)).squeeze(1)
 
                     # normalize normals
-                    o_pred_len = torch.max(torch.cuda.FloatTensor([sys.float_info.epsilon*100]), o_pred.norm(p=2, dim=1, keepdim=True))
+                    o_pred_len = torch.max(o_pred.new_tensor([sys.float_info.epsilon*100]), o_pred.norm(p=2, dim=1, keepdim=True))
                     o_pred = o_pred / o_pred_len
 
                 elif o == 'max_curvature' or o == 'min_curvature':
@@ -211,7 +209,7 @@ def eval_pcpnet(opt):
                     elif len(oi) == 1:
                         oi = oi[0]
                         normal_prop = shape_properties[:, output_pred_ind[oi]:output_pred_ind[oi]+3]
-                        np.savetxt(os.path.join(model_outdir, dataset.shape_names[shape_ind]+'.normals'), normal_prop.numpy())
+                        np.savetxt(os.path.join(model_outdir, dataset.shape_names[shape_ind]+'.normals'), normal_prop.cpu().numpy())
                         prop_saved[oi] = True
 
                     # save curvatures
@@ -220,7 +218,7 @@ def eval_pcpnet(opt):
                     if len(oi1) > 1 or len(oi2) > 1:
                         raise ValueError('Duplicate minimum or maximum curvature output.')
                     elif len(oi1) == 1 or len(oi2) == 1:
-                        curv_prop = torch.FloatTensor(shape_properties.size(0), 2).zero_()
+                        curv_prop = shape_properties.new_zeros(shape_properties.size(0), 2)
                         if len(oi1) == 1:
                             oi1 = oi1[0]
                             curv_prop[:, 0] = shape_properties[:, output_pred_ind[oi1]:output_pred_ind[oi1]+1]
@@ -229,7 +227,7 @@ def eval_pcpnet(opt):
                             oi2 = oi2[0]
                             curv_prop[:, 1] = shape_properties[:, output_pred_ind[oi2]:output_pred_ind[oi2]+1]
                             prop_saved[oi2] = True
-                        np.savetxt(os.path.join(model_outdir, dataset.shape_names[shape_ind]+'.curv'), curv_prop.numpy())
+                        np.savetxt(os.path.join(model_outdir, dataset.shape_names[shape_ind]+'.curv'), curv_prop.cpu().numpy())
 
                     if not all(prop_saved):
                         raise ValueError('Not all shape properties were saved, some of them seem to be unsupported.')
@@ -249,7 +247,7 @@ def eval_pcpnet(opt):
                             shape_patch_count = len(datasampler.shape_patch_inds[shape_ind])
                         else:
                             raise ValueError('Unknown sampling strategy: %s' % opt.sampling)
-                        shape_properties = torch.FloatTensor(shape_patch_count, pred_dim).zero_()
+                        shape_properties = shape_properties.new_zeros(shape_patch_count, pred_dim)
 
 
 if __name__ == '__main__':
