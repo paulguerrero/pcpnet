@@ -7,7 +7,6 @@ import numpy as np
 import torch
 import torch.nn.parallel
 import torch.utils.data
-from torch.autograd import Variable
 from dataset import PointcloudPatchDataset, SequentialPointcloudPatchSampler, SequentialShapeRandomPointcloudPatchSampler
 from pcpnet import PCPNet, MSPCPNet
 
@@ -145,7 +144,7 @@ def eval_pcpnet(opt):
         batch_enum = enumerate(dataloader, 0)
         for batchind, data in batch_enum:
 
-            # get batch, convert to variables and upload to GPU
+            # get batch and upload to GPU
             points, data_trans = data
             points = points.transpose(2, 1)
             points = points.to(device)
@@ -163,11 +162,11 @@ def eval_pcpnet(opt):
                     if trainopt.use_point_stn:
                         # transform predictions with inverse transform
                         # since we know the transform to be a rotation (QSTN), the transpose is the inverse
-                        o_pred[:, :] = torch.bmm(o_pred.unsqueeze(1), trans.transpose(2, 1)).squeeze(1)
+                        o_pred[:, :] = torch.bmm(o_pred.unsqueeze(1), trans.transpose(2, 1)).squeeze(dim=1)
 
                     if trainopt.use_pca:
                         # transform predictions with inverse pca rotation (back to world space)
-                        o_pred[:, :] = torch.bmm(o_pred.unsqueeze(1), data_trans.transpose(2, 1)).squeeze(1)
+                        o_pred[:, :] = torch.bmm(o_pred.unsqueeze(1), data_trans.transpose(2, 1)).squeeze(dim=1)
 
                     # normalize normals
                     o_pred_len = torch.max(o_pred.new_tensor([sys.float_info.epsilon*100]), o_pred.norm(p=2, dim=1, keepdim=True))
@@ -190,7 +189,7 @@ def eval_pcpnet(opt):
                 shape_patches_remaining = shape_patch_count-shape_patch_offset
                 batch_patches_remaining = pred.size(0)-batch_offset
 
-                # append estimated patch properties batch to properties for the current shape on the CPU
+                # append estimated patch properties batch to properties for the current shape
                 shape_properties[shape_patch_offset:shape_patch_offset+min(shape_patches_remaining, batch_patches_remaining), :] = pred[
                     batch_offset:batch_offset+min(shape_patches_remaining, batch_patches_remaining), :]
 
@@ -221,11 +220,11 @@ def eval_pcpnet(opt):
                         curv_prop = shape_properties.new_zeros(shape_properties.size(0), 2)
                         if len(oi1) == 1:
                             oi1 = oi1[0]
-                            curv_prop[:, 0] = shape_properties[:, output_pred_ind[oi1]:output_pred_ind[oi1]+1]
+                            curv_prop[:, 0] = shape_properties[:, output_pred_ind[oi1]]
                             prop_saved[oi1] = True
                         if len(oi2) == 1:
                             oi2 = oi2[0]
-                            curv_prop[:, 1] = shape_properties[:, output_pred_ind[oi2]:output_pred_ind[oi2]+1]
+                            curv_prop[:, 1] = shape_properties[:, output_pred_ind[oi2]]
                             prop_saved[oi2] = True
                         np.savetxt(os.path.join(model_outdir, dataset.shape_names[shape_ind]+'.curv'), curv_prop.cpu().numpy())
 
