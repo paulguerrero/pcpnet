@@ -19,7 +19,7 @@ This work was presented at [Eurographics 2018](https://www.eurographics2018.nl/)
 
 ## Prerequisites
 * Python 3.6
-* PyTorch 0.4
+* PyTorch ≥ 0.4
 * CUDA and CuDNN if training on the GPU
 
 ## Setup
